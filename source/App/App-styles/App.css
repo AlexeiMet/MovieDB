@@ -2,7 +2,7 @@
 @import './App-vars.css';
 
 body {
-  font-family: OpenSans;
+  font-family: Open Sans;
   font-size: 16px;
   color: var(--dark);
   overflow: hidden;
