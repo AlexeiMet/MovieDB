@@ -1,0 +1,29 @@
+.row {
+  display: flex;
+}
+
+
+.sidebarCol {
+  flex-shrink: 0;
+}
+
+
+.mainCol {
+  flex-grow: 1;
+}
+
+.mainWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--dark);
+}
+
+
+.headerWrapper {
+  flex-shrink: 0;
+}
+
+.contentWrapper {
+  flex-grow: 1;
+}
