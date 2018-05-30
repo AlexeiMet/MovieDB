@@ -1,6 +1,8 @@
 import * as React from 'react';
 import ResizeObserver from 'resize-observer-polyfill';
+
 const s: {[props: string]: string} = require('./PageWrapper.css');
+
 
 interface IPageWrapperProps {
   children: JSX.Element | JSX.Element[] | string | string[]

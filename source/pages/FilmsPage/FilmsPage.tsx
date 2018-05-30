@@ -1,32 +1,28 @@
 import * as React from 'react';
 import {Switch, Route} from 'react-router-dom';
+import {observer, Observer} from 'mobx-react';
 import ResizeObserver from 'resize-observer-polyfill';
-// Components
-import {PageWrapper} from './../../common-components/PageWrapper/PageWrapper';
+
+import {PageWrapper} from 'common-components/PageWrapper/PageWrapper';
 import {Card} from './components/Card/Card';
 import {ICardContent} from './components/Card/Card';
-// Contexts
-import {LibraryConsumer} from './../../contexts/LibraryContext';
-// Helper functions
-import {getUniqKey} from './../../common-helper-functions/getUniqKey';
-import {loadFilms} from './helper-functions/loadFilms';
+
+import {libraryStore} from 'stores/LibraryStore';
+import {filmsStore} from 'stores/FilmsStore';
+
+import {getUniqKey} from 'common-helper-functions/getUniqKey';
 import {executeIfScrolledDown} from './helper-functions/executeIfScrolledDown';
-import {apiConsts} from './../../apiLib/apiConsts';
+import {apiConsts} from 'apiLib/apiConsts';
 
 const s: {[props: string]: string} = require('./FilmsPage.css');
 
-interface IFilmsPagePropsCategory {
+
+interface IFilmsPageProps {
   match: {
     params: {
-      category: string | undefined
+      category: string;
+      search?: string;
     }
-  }
-}
-interface IFilmsPageProps extends IFilmsPagePropsCategory {
-  libraryContext: {
-    savedFilms: ICardContent[];
-    addFilm: (film: ICardContent) => void;
-    removeFilm: (id: number) => void
   }
 }
 
@@ -37,76 +33,11 @@ interface IFilmsPageState {
   allContentLoaded: boolean
 }
 
-class FilmsPage extends React.PureComponent<IFilmsPageProps, IFilmsPageState> {
+
+export class FilmsPage extends React.Component<IFilmsPageProps, IFilmsPageState> {
+
   public cardsGrid: HTMLElement
   public pageWrapperComp: PageWrapper
-
-  state: IFilmsPageState = {
-    cardsContent: [],
-    loaded: false,
-    error: false,
-    allContentLoaded: false
-  }
-
-  componentIsUnmount = false
-
-  addCardsContent = (content: ICardContent[] | undefined) => {
-    if (!content || this.componentIsUnmount) return;
-    const cardsContent = [...this.state.cardsContent].splice(0, this.getCurrentPage()*apiConsts.cardsOnPage);
-    const newCardsContent = cardsContent.concat(content);
-    this.setState({cardsContent: newCardsContent});
-  }
-
-  loadCardsContent = () => {
-    if (this.state.loaded || this.state.allContentLoaded || this.componentIsUnmount) return;
-    this.setState({loaded: true});
-    const handleSuccess = (content: ICardContent[]) => {
-      if (this.componentIsUnmount) return;
-      this.addCardsContent(content);
-      this.setState({loaded: false});
-      if (content.length < apiConsts.cardsOnPage){
-        this.setState({allContentLoaded: true});
-      }
-      const wrapper = this.pageWrapperComp.mainContentWrapperElem;
-      executeIfScrolledDown(wrapper, this.loadCardsContent);
-    }
-    const handleError = (content: ICardContent[]) => {
-      if (this.componentIsUnmount) return;
-      this.setState({
-        loaded: false,
-        error: true
-      })
-    }
-    loadFilms(handleSuccess, handleError, this.props.match.params.category, this.getCurrentPage() + 1);
-  }
-
-  getCurrentPage = (): number => {
-    const page = Math.floor(this.state.cardsContent.length / apiConsts.cardsOnPage);
-    return page;
-  }
-
-  resetPage = () => {
-    if (this.componentIsUnmount) return;
-    this.setState({
-      cardsContent: [],
-      loaded: false,
-      error: false,
-      allContentLoaded: false
-    })
-  }
-
-  removeFilm = (id: number) => {
-    if (this.props.match.params.category === 'library'){
-      const newCardsContent = [...this.state.cardsContent];
-      newCardsContent.forEach((content, i) => {
-        if (content.id === id){
-          newCardsContent.splice(i, 1);
-        }
-      })
-      this.setState({cardsContent: newCardsContent});
-    }
-    this.props.libraryContext.removeFilm(id);
-  }
 
   setCardsGridClass = () => {
     if (!this.cardsGrid) return;
@@ -126,69 +57,80 @@ class FilmsPage extends React.PureComponent<IFilmsPageProps, IFilmsPageState> {
     this.cardsGrid.className = cardsGridClass;
   }
 
-  componentWillReceiveProps(nextProps: IFilmsPageProps) {
-    if (this.props.match.params.category !== nextProps.match.params.category){
-      this.resetPage();
-    }
+  loadNewFilms = () => {
+    filmsStore.init(this.props.match.params.category, this.props.match.params.search);
+    filmsStore.loadFilms();
   }
 
   componentDidUpdate(prevProps: IFilmsPageProps) {
-    if (this.props.match.params.category !== prevProps.match.params.category){
-      const wrapper = this.pageWrapperComp.mainContentWrapperElem;
-      executeIfScrolledDown(wrapper, this.loadCardsContent);
+    if (
+      this.props.match.params.category !== prevProps.match.params.category ||
+      this.props.match.params.search !== prevProps.match.params.search
+    ){
+      this.loadNewFilms();
     }
+  }
+
+  componentWillMount() {
+    this.loadNewFilms();
   }
 
   componentDidMount() {
     const wrapper = this.pageWrapperComp.mainContentWrapperElem;
-    executeIfScrolledDown(wrapper, this.loadCardsContent);
+    executeIfScrolledDown(wrapper, filmsStore.loadFilms);
     wrapper.addEventListener('scroll', () => {
-      executeIfScrolledDown(wrapper, this.loadCardsContent);
+      executeIfScrolledDown(wrapper, filmsStore.loadFilms);
     });
-    const wrapperResizeObserver = new ResizeObserver(executeIfScrolledDown.bind(undefined, wrapper, this.loadCardsContent));
+    const wrapperResizeObserver = new ResizeObserver(executeIfScrolledDown.bind(undefined, wrapper, filmsStore.loadFilms));
     wrapperResizeObserver.observe(wrapper);
     const cardsGridResizeObserver = new ResizeObserver(this.setCardsGridClass);
     cardsGridResizeObserver.observe(this.cardsGrid);
   }
 
   componentWillUnmount() {
-    this.componentIsUnmount = true
+    filmsStore.clear();
   }
 
   render() {
     return (
       <PageWrapper ref={el => this.pageWrapperComp = el}>
         <div ref={el => this.cardsGrid = el} className={s.cardsGrid}>
-          {
-            this.state.cardsContent.map((content: ICardContent, i) => {
-              return (
-                <div key={getUniqKey()} className={s.cardWrapper}>
-                  <Card onRemoveFilm={this.removeFilm}>{content}</Card>
-                </div>
-              )
-            })
-          }
+          <Observer>
+            {
+              () => filmsStore.films.map((film: ICardContent, i) => {
+                return (
+                  <div key={getUniqKey()} className={s.cardWrapper}>
+                    <Card>{film}</Card>
+                  </div>
+                )
+              })
+            }
+          </Observer>
         </div>
-        {this.state.loaded && <div className={s.notification}>Please wait, content loaded...</div>}
-        {this.state.error && <div className={s.notification}>Error on load!</div>}
-        {this.state.allContentLoaded && 
-          <div className={s.loadBtnWrapper}>
-            <button onClick={this.loadCardsContent} className={s.loadBtn}>Refresh</button>
-          </div>
-        }
+        <Observer>
+          {() => filmsStore.loaded && <div className={s.notification}>Please wait, content loaded...</div>}
+        </Observer>
+        <Observer>
+          {() =>filmsStore.error && <div className={s.notification}>Error on load!</div>}
+        </Observer>
+        <Observer>
+          {
+            () => filmsStore.allContentLoaded ?
+              this.props.match.params.category === 'library' ? null :
+                <div className={s.loadBtnWrapper}>
+                  <button onClick={filmsStore.loadFilms} className={s.loadBtn}>Refresh</button>
+                </div> : null
+          }
+        </Observer>
+        <Observer>
+          {
+            () => (filmsStore.films.length < 1 && !filmsStore.loaded && !filmsStore.error) ?
+              this.props.match.params.category === 'library' ?
+                <div className={s.notification}>You don't have any saved films</div> :
+                <div className={s.notification}>No films have been found</div> : null
+          }
+        </Observer>
       </PageWrapper>
     );
   }
 }
-
-const LibraryContextHomePage = (props: IFilmsPagePropsCategory) =>
-  <LibraryConsumer>
-    {
-      libraryContext => {
-        const homeProps = {...props, libraryContext}
-        return <FilmsPage {...homeProps} />
-      }
-    }
-  </LibraryConsumer>
-
-export {LibraryContextHomePage as FilmsPage}

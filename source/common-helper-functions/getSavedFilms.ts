@@ -1,4 +1,4 @@
-import {ICardContent} from './../pages/FilmsPage/components/Card/Card';
+import {ICardContent} from 'pages/FilmsPage/components/Card/Card';
 
 export const getSavedFilms = (): ICardContent[] => {
   let savedFilms: ICardContent[];

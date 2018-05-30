@@ -1,10 +1,12 @@
-import {IFilmContent} from './../FilmPage';
-import {requestFilm} from './../../../apiLib/requestFilm';
-import {apiConsts} from './../../../apiLib/apiConsts';
+import {IFilmContent} from 'stores/FilmStore';
+
+import {requestFilm} from 'apiLib/requestFilm';
+import {apiConsts} from 'apiLib/apiConsts';
 
 
 type loadFilmType = (successCb: Function, errorCb: Function, category: string, id: number) => void;
-export const loadFilm: loadFilmType = (successCb, errorCb, category: string, id) => {
+
+export const loadFilm: loadFilmType = (successCb, errorCb, category, id) => {
   let requestCategory: 'tv' | 'movie' = 'movie';
   if (category === 'tvshows'){
     requestCategory = 'tv'
@@ -14,8 +16,8 @@ export const loadFilm: loadFilmType = (successCb, errorCb, category: string, id)
 
   const receiveLoadedFilm = (content: any) => {
     const backdrops: string[] = [];
-    content.images.backdrops.forEach((backdrop: any) => {
-      if (backdrop['aspect_ratio'] !== 0.68) return;
+    content.images.backdrops.forEach((backdrop: any, i: number) => {
+      if (i > 14) return;
       const backdropUrl = `${apiConsts.imageUrl}${backdrop['file_path']}`;
       backdrops.push(backdropUrl);
     });

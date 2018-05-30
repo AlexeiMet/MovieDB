@@ -25,7 +25,7 @@ module.exports = merge(common, {
     rules: [
       {
         test: /\.tsx?$/,
-        loader: 'ts-loader'
+        loader: ['ts-loader']
       },
       {
         test: /\.css$/,

@@ -1,3 +1,5 @@
+@import './../../App/App-styles/App-vars.css';
+
 .wrapper {
   position: fixed;
   bottom: 30px;
@@ -6,6 +8,21 @@
   height: 135px;
   padding: 20px 40px 30px;
   z-index: 999;
+}
+
+.closeIcon {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  text-align: center;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.closeIcon:before {
+  font-family: FontAwesome;
+  content: '\f00d';
+  font-size: 23px;
+  color: var(--dark);
 }
 
 .icon {

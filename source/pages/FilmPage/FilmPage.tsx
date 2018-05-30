@@ -1,7 +1,17 @@
 import * as React from 'react';
-import {PageWrapper} from './../../common-components/PageWrapper/PageWrapper';
-import {loadFilm} from './helper-functions/loadFilm';
-import {getUniqKey} from './../../common-helper-functions/getUniqKey';
+import {Link} from 'react-router-dom';
+import {observer} from 'mobx-react';
+
+import {filmStore} from 'stores/FilmStore';
+
+import {IFilmContent} from 'stores/FilmStore';
+
+import {PageWrapper} from 'common-components/PageWrapper/PageWrapper';
+
+import {getUniqKey} from 'common-helper-functions/getUniqKey';
+
+const s: {[props: string]: string} = require('./FilmPage.css');
+
 
 interface IFilmPageProps {
   match: {
@@ -12,50 +22,11 @@ interface IFilmPageProps {
   }
 }
 
-export interface IFilmContent {
-  id: number;
-  title: string;
-  overview: string;
-  poster: string;
-  backdrops: string[];
-  genres: string[];
-  popularity: number;
-  voteAverage: number;
-  relatedFilms: {id: number; image: string}[]
-}
-
-export class FilmPage extends React.PureComponent<IFilmPageProps, IFilmContent> {
-  state: IFilmContent = {
-    id: undefined,
-    title: undefined,
-    overview: undefined,
-    poster: undefined,
-    backdrops: [],
-    genres: [],
-    popularity: undefined,
-    voteAverage: undefined,
-    relatedFilms: []
-  }
-
-  componentIsUnmount = false
-
-  setFilmContent = (content: IFilmContent) => {
-    if (this.componentIsUnmount) return;
-    this.setState(content);
-  }
+@observer
+export class FilmPage extends React.Component<IFilmPageProps> {
 
   loadFilmContent = () => {
-    const handleSuccessLoad = (content: IFilmContent) => {
-      this.setFilmContent(content);
-    }
-    const handleErrorLoad = () => {
-      alert('There was an error on load');
-    }
-    loadFilm(handleSuccessLoad, handleErrorLoad, this.props.match.params.category, this.props.match.params.id);
-  }
-
-  componentDidMount() {
-    this.loadFilmContent();
+    filmStore.loadFilmContent(this.props.match.params.category, this.props.match.params.id);
   }
 
   componentDidUpdate(prevProps: IFilmPageProps) {
@@ -64,22 +35,65 @@ export class FilmPage extends React.PureComponent<IFilmPageProps, IFilmContent> 
     }
   }
 
-  componentWillUnmount() {
-    this.componentIsUnmount = true;
+  componentWillMount() {
+    this.loadFilmContent();
   }
 
   render() {
     return (
       <PageWrapper>
-        <div style={{color: '#fff'}}>
-          <img src={this.state.poster} />
-          <h1>{this.state.title}</h1>
-          <p>{this.state.overview}</p>
-          <ul>
-            {this.state.genres.map(genre => <li key={getUniqKey()}>{genre}</li>)}
-          </ul>
-          <div>popularity: <span>{this.state.popularity}</span></div>
-          <div>vote average: <span>{this.state.voteAverage}</span></div>
+        <div className={s.wrapper}>
+          {
+            filmStore.filmContent ? 
+              <div style={{color: '#fff'}}>
+                <div className={s.row}>
+                  <div className={s.leftCol}>
+                    <div className={s.imagesWrapper}>
+                      <div style={{backgroundImage: `url(${filmStore.filmContent.poster})`}} className={s.image} />
+                      <div className={s.backdropsWrapper}>
+                        {
+                          filmStore.filmContent.backdrops.map(backdrop => 
+                            <div style={{backgroundImage: `url(${backdrop})`}} className={s.backdrop} key={getUniqKey()} />
+                          )
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <div className={s.rightCol}>
+                    <h2 className={s.title}>{filmStore.filmContent.title}</h2>
+                    <div className={s.overview}>{filmStore.filmContent.overview}</div>
+                  </div>
+                </div>
+                <div className={`${s.row} ${s.bottomRow}`}>
+                  <div className={s.leftCol}>
+                    <div className={s.genres}>
+                      <div className={s.genresTitle}>Genres: </div>
+                      {filmStore.filmContent.genres.map(genre =>
+                        <div className={s.genre} key={getUniqKey()}>{genre}</div>)}
+                    </div>
+                  </div>
+                  <div className={s.rightCol}>
+                    <div className={`${s.popularity}`}>
+                      <div className={s.progressText}>Popularity:</div>
+                      <div className={s.popularityNumber}>{filmStore.filmContent.popularity}</div>
+                    </div>
+                    <div className={`${s.vote}`}>
+                      <div className={s.progressText}>Vote average:</div>
+                      <div className={s.voteProgressBar}>
+                        <div style={{width: `${filmStore.filmContent.voteAverage*10}%`}} className={s.voteProgress}>{filmStore.filmContent.voteAverage}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={s.relatedFilms}>
+                  {filmStore.filmContent.relatedFilms.map(film =>
+                    <Link to={`/film/${this.props.match.params.category}/${film.id}`} style={{backgroundImage: `url(${film.image})`}} className={s.relatedFilm} key={getUniqKey()} />)}
+                </div>
+              </div> : 
+              <div className={s.notification}>
+                Wait, content loaded...
+              </div>
+          }
         </div>
       </PageWrapper>
     );

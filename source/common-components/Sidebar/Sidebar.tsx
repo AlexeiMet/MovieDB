@@ -1,39 +1,28 @@
 import * as React from 'react';
-import {Link} from 'react-router-dom';
-import {LibraryConsumer} from './../../contexts/LibraryContext';
-import {ICardContent} from './../../pages/FilmsPage/components/Card/Card';
+import {Link, NavLink} from 'react-router-dom';
+import {computed} from 'mobx';
+import {observer, Observer} from 'mobx-react';
+
+import {ICardContent} from 'pages/FilmsPage/components/Card/Card';
+
+import {sidebarStore} from 'stores/SidebarStore';
+import {libraryStore} from 'stores/LibraryStore';
+
 const s: {[props: string]: string} = require('./Sidebar.css');
 
-interface ISidebarProps {
-  savedFilms: ICardContent[]
-}
 
-interface ISidebarState {
-  opened: boolean
-}
+export class Sidebar extends React.Component {
 
-class Sidebar extends React.PureComponent<ISidebarProps, ISidebarState> {
-  state: ISidebarState = {
-    opened: true
-  }
-
-  close = () => {
-    this.setState({opened: false});
-  }
-  open = () => {
-    this.setState({opened: true});
-  }
-
-  getSidebarOpenCloseClass = () => {
+  @computed get openCloseClass() {
     let sidebarClass = s.sidebar;
-    this.state.opened ?
+    sidebarStore.opened ?
       sidebarClass += ' '+s.sidebarOpened :
       sidebarClass += ' '+s.sidebarClosed;
     return sidebarClass;
   }
 
-  getLibraryIndicator = () => {
-    const savedFilmsCount = this.props.savedFilms.length;
+  @computed get libraryIndicator() {
+    const savedFilmsCount = libraryStore.savedFilmsCount;
     let libraryIndicator: null | JSX.Element;
     if (savedFilmsCount){
       const indicator = savedFilmsCount > 10 ? '10+' : savedFilmsCount;
@@ -45,50 +34,48 @@ class Sidebar extends React.PureComponent<ISidebarProps, ISidebarState> {
   }
 
   render() {
+    
     return (
-      <div className={this.getSidebarOpenCloseClass()}>
-        <div className={s.content}>
-          <div className={s.top}>
-            <div className={s.toggleIconWrapper}>
-              {this.state.opened ?
-                <span onClick={this.close} className={`${s.closeIcon} ${s.toggleIcon}`} /> :
-                <span onClick={this.open} className={`${s.openIcon} ${s.toggleIcon}`}/>}
-            </div>
-            <Link to='/'>
-              <div className={s.logo}>
-                <div className={s.logoIcon} />
-                <div className={s.logoText}><span>Movie</span> <span>House</span></div>
+      <Observer>
+        {() =>
+          <div className={this.openCloseClass}>
+            <div className={s.content}>
+              <div className={s.top}>
+                <div className={s.toggleIconWrapper}>
+                  {sidebarStore.opened ?
+                    <span onClick={sidebarStore.close} className={`${s.closeIcon} ${s.toggleIcon}`} /> :
+                    <span onClick={sidebarStore.open} className={`${s.openIcon} ${s.toggleIcon}`}/>}
+                </div>
+                <Link to='/'>
+                  <div className={s.logo}>
+                    <div className={s.logoIcon} />
+                    <div className={s.logoText}><span>Movie</span> <span>House</span></div>
+                  </div>
+                </Link>
               </div>
-            </Link>
+              <div className={s.pagesNav}>
+                <NavLink to='/films/movies' activeClassName={s['pageLink_active']} className={s.pageLink}>
+                  <span className={`${s.movieIcon} ${s.pageIcon}`} />
+                  <span className={s.pageText}>Movie</span>
+                </NavLink>
+                <NavLink to='/films/tvshows' activeClassName={s['pageLink_active']} className={s.pageLink}>
+                  <span className={`${s.tvshowIcon} ${s.pageIcon}`} />
+                  <span className={s.pageText}>TV Show</span>
+                </NavLink>
+                <NavLink to='/films/library' activeClassName={s['pageLink_active']} className={s.pageLink}>
+                  <span className={`${s.libraryIcon} ${s.pageIcon}`} />
+                  <span className={s.pageText}>My Library</span>
+                  {this.libraryIndicator}
+                </NavLink>
+                <NavLink to='/support' activeClassName={s['pageLink_active']} className={s.pageLink}>
+                  <span className={`${s.supportIcon} ${s.pageIcon}`} />
+                  <span className={s.pageText}>Support</span>
+                </NavLink>
+              </div>
+            </div>
           </div>
-          <div className={s.pagesNav}>
-            <Link to='/films/movies' className={s.pageLink}>
-              <span className={`${s.movieIcon} ${s.pageIcon}`} />
-              <span className={s.pageText}>Movie</span>
-            </Link>
-            <Link to='/films/tvshows' className={s.pageLink}>
-              <span className={`${s.tvshowIcon} ${s.pageIcon}`} />
-              <span className={s.pageText}>TV Show</span>
-            </Link>
-            <Link to='/films/library' className={s.pageLink}>
-              <span className={`${s.libraryIcon} ${s.pageIcon}`} />
-              <span className={s.pageText}>My Library</span>
-              {this.getLibraryIndicator()}
-            </Link>
-            <Link to='/support' className={s.pageLink}>
-              <span className={`${s.supportIcon} ${s.pageIcon}`} />
-              <span className={s.pageText}>Support</span>
-            </Link>
-          </div>
-        </div>
-      </div>
+        }
+      </Observer>
     );
   }
 }
-
-const LibraryContextSidebar = () =>
-  <LibraryConsumer>
-    {({savedFilms}) => <Sidebar savedFilms={savedFilms} />}
-  </LibraryConsumer>
-
-export {LibraryContextSidebar as Sidebar}

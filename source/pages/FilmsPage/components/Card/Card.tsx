@@ -1,8 +1,13 @@
 import * as React from 'react';
 import {Link} from 'react-router-dom';
-import {LibraryConsumer} from './../../../../contexts/LibraryContext';
-import {NotificationConsumer} from '../../../../contexts/NotificationsContext';
+import {observer} from 'mobx-react';
+
+import {libraryStore} from 'stores/LibraryStore';
+import {notificationStore} from 'stores/NotificationStore';
+import {filmsStore} from 'stores/FilmsStore';
+
 const s: {[props: string]: string} = require('./Card.css');
+
 
 export interface ICardContent {
   id: number;
@@ -12,42 +17,41 @@ export interface ICardContent {
   category: string
 }
 
-interface ICardPropsContent {
+interface ICardProps {
   children: ICardContent;
-  onRemoveFilm: (id: number) => void
-}
-interface ICardProps extends ICardPropsContent {
-  savedFilms: ICardContent[];
-  addFilm: (film: ICardContent) => void;
-  removeFilm: (id: number) => void;
-  showNotification: (message: string, tone: '-' | '+') => void
 }
 
 interface ICardState {
   overview: boolean
 }
 
-class Card extends React.PureComponent<ICardProps, ICardState> {
+
+@observer
+export class Card extends React.Component<ICardProps, ICardState> {
   state = {
     overview: false
   }
 
   isSaved = () => {
-    return this.props.savedFilms.some((savedFilm) => {
+    const isSaved = libraryStore.savedFilms.some((savedFilm) => {
       return savedFilm.id === this.props.children.id
-    })
+    });
+    return isSaved
   }
 
   handleAdd = () => {
-    this.props.addFilm(this.props.children);
+    libraryStore.addFilm(this.props.children);
     const message = `'${this.props.children.title}' has been added successfully`;
-    this.props.showNotification(message, '+');
+    notificationStore.showNotification(message, '+');
   }
 
   handleRemove = () => {
-    this.props.onRemoveFilm(this.props.children.id);
+    libraryStore.removeFilm(this.props.children.id);
     const message = `'${this.props.children.title}' has been removed successfully`;
-    this.props.showNotification(message, '-');
+    notificationStore.showNotification(message, '-');
+    if (filmsStore.category === 'library'){
+      filmsStore.removeFilm(this.props.children.id);
+    }
   }
 
   toggleOverview = () => {
@@ -58,7 +62,7 @@ class Card extends React.PureComponent<ICardProps, ICardState> {
     this.setState({overview: false});
   }
 
-  public render() {
+  render() {
     const cardClass = this.isSaved() ? `${s.card} ${s.cardSaved}` : s.card;
     return (
       <div onMouseLeave={this.closeOverview} style={{backgroundImage: `url(${this.props.children.image})`}} className={cardClass}>
@@ -86,21 +90,3 @@ class Card extends React.PureComponent<ICardProps, ICardState> {
     );
   }
 }
-
-const LibraryContextNotificationContextCard = (props: ICardPropsContent) =>
-  <LibraryConsumer>
-    {libraryContext => {
-      return (
-        <NotificationConsumer>
-          {notificationContext => {
-            const cardProps = {...props, ...libraryContext, ...notificationContext};
-            return (
-              <Card {...cardProps} />
-            )
-          }}
-        </NotificationConsumer>
-      )
-    }}
-  </LibraryConsumer>
-
-export {LibraryContextNotificationContextCard as Card}

@@ -6,6 +6,7 @@
   padding-bottom: 150%;
   background-position: center;
   background-size: cover;
+  background-color: var(--accent);
 }
 
 .cardSaved {

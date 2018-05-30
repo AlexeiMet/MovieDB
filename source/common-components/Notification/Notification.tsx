@@ -1,14 +1,22 @@
 import * as React from 'react';
+
+import {notificationStore} from 'stores/NotificationStore';
+
 const s: {[props: string]: string} = require('./Notification.css');
+
 
 interface INotificationProps {
   children: string;
   tone: '-' | '+';
-  pos: number
+  id: number;
+  pos: number;
 }
 
-export class Notification extends React.PureComponent<INotificationProps> {
-  public wrapperElem: HTMLElement
+export class Notification extends React.Component<INotificationProps> {
+
+  remove = () => {
+    notificationStore.destroyNotification(this.props.id);
+  }
 
   render() {
     let wrapperClass = s.wrapper;
@@ -18,10 +26,12 @@ export class Notification extends React.PureComponent<INotificationProps> {
       wrapperClass += ` ${s['wrapper_positive']}`;
     }
     return (
-      <div ref={el => this.wrapperElem = el} style={{bottom: `${145*this.props.pos+30}px`}} className={wrapperClass}>
+      <div style={{bottom: `${145*this.props.pos+30}px`}} className={wrapperClass}>
+        <div onClick={this.remove} className={s.closeIcon} />
         <div className={s.icon} />
         <div className={s.message}>{this.props.children}</div>
       </div>
     );
   }
+
 }
